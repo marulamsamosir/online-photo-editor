@@ -6,8 +6,10 @@ class PhotoEditor {
         this.currentImage = null;
         this.settings = this.getDefaultSettings();
         this.cropMode = false;
-        this.cropData = null;
+        this.cropData = { x: 0, y: 0, width: 0, height: 0 };
+        this.currentAspectRatio = 'free';
         this.toneCurvePoints = [[0, 0], [255, 255]]; // Linear curve initially
+        this.fileInfo = {};
         
         this.initializeEditor();
         this.setupEventListeners();
@@ -32,13 +34,24 @@ class PhotoEditor {
             vignetteAmount: 0,
             vignetteMidpoint: 50,
             vignetteFeather: 50,
+            vignetteRoundness: 0,
+            vignetteHighlights: 0,
             grainAmount: 0,
             grainSize: 25,
+            grainRoughness: 50,
             sharpenAmount: 25,
             sharpenRadius: 1,
+            sharpenDetail: 25,
+            sharpenMasking: 0,
             noiseLuminance: 0,
+            noiseDetail: 50,
+            noiseContrast: 0,
             noiseColor: 25,
+            colorNoiseDetail: 50,
+            colorNoiseSmoothness: 50,
             straighten: 0,
+            gradingBlending: 50,
+            gradingBalance: 0,
             colorMix: {
                 red: { hue: 0, saturation: 0, luminance: 0 },
                 orange: { hue: 0, saturation: 0, luminance: 0 },
@@ -48,6 +61,12 @@ class PhotoEditor {
                 blue: { hue: 0, saturation: 0, luminance: 0 },
                 purple: { hue: 0, saturation: 0, luminance: 0 },
                 magenta: { hue: 0, saturation: 0, luminance: 0 }
+            },
+            colorGrading: {
+                shadows: { hue: 0, saturation: 0, luminance: 0 },
+                midtones: { hue: 0, saturation: 0, luminance: 0 },
+                highlights: { hue: 0, saturation: 0, luminance: 0 },
+                global: { hue: 0, saturation: 0, luminance: 0 }
             }
         };
     }
@@ -70,6 +89,15 @@ class PhotoEditor {
         // All sliders
         $('.slider').on('input', (e) => this.handleSliderChange(e));
 
+        // Double click reset for sliders
+        $('.slider').on('dblclick', (e) => this.resetSlider(e));
+
+        // Slider reset buttons
+        $('.slider-reset').on('click', (e) => {
+            const slider = $(e.target).siblings('.slider');
+            this.resetSlider({ target: slider[0] });
+        });
+
         // Reset button
         $('#resetBtn').on('click', () => this.resetAll());
 
@@ -79,15 +107,105 @@ class PhotoEditor {
         // Aspect ratio buttons
         $('.aspect-btn').on('click', (e) => this.setAspectRatio($(e.target).data('aspect')));
 
+        // Apply crop button
+        $('#applyCropBtn').on('click', () => this.applyCrop());
+
+        // Crop overlay events
+        $('#cropOverlay').on('mousedown', (e) => this.startCropDrag(e));
+        $(document).on('mousemove', (e) => this.updateCropDrag(e));
+        $(document).on('mouseup', () => this.endCropDrag());
+
         // Tone curve canvas
         $('#toneCurve').on('mousedown', (e) => this.startToneCurveEdit(e));
         $(document).on('mousemove', (e) => this.updateToneCurve(e));
         $(document).on('mouseup', () => this.endToneCurveEdit());
     }
 
-    handleFileLoad(event) {
+    resetSlider(event) {
+        const slider = $(event.target);
+        const id = slider.attr('id');
+        
+        // Get default value based on slider
+        let defaultValue = 0;
+        if (id.includes('midpoint') || id.includes('feather')) {
+            defaultValue = 50;
+        } else if (id === 'grain-size' || id === 'grain-roughness') {
+            defaultValue = 25;
+        } else if (id === 'sharpen-amount' || id === 'sharpen-detail') {
+            defaultValue = 25;
+        } else if (id === 'sharpen-radius') {
+            defaultValue = 1;
+        } else if (id === 'noise-detail' || id === 'color-noise-detail' || 
+                  id === 'color-noise-smoothness' || id === 'grading-blending') {
+            defaultValue = 50;
+        } else if (id === 'noise-color') {
+            defaultValue = 25;
+        }
+
+        slider.val(defaultValue);
+        this.handleSliderChange(event);
+    }
+
+    extractExifData(file) {
+        return new Promise((resolve) => {
+            EXIF.getData(file, function() {
+                const exifData = {
+                    camera: EXIF.getTag(this, "Make") + " " + (EXIF.getTag(this, "Model") || ""),
+                    lens: EXIF.getTag(this, "LensModel") || "-",
+                    iso: EXIF.getTag(this, "ISOSpeedRatings") || "-",
+                    aperture: EXIF.getTag(this, "FNumber") ? "f/" + EXIF.getTag(this, "FNumber") : "-",
+                    shutter: EXIF.getTag(this, "ExposureTime") || "-",
+                    focalLength: EXIF.getTag(this, "FocalLength") ? EXIF.getTag(this, "FocalLength") + "mm" : "-",
+                    dateTaken: EXIF.getTag(this, "DateTime") || "-",
+                    gpsLat: EXIF.getTag(this, "GPSLatitude"),
+                    gpsLon: EXIF.getTag(this, "GPSLongitude"),
+                    gpsLatRef: EXIF.getTag(this, "GPSLatitudeRef"),
+                    gpsLonRef: EXIF.getTag(this, "GPSLongitudeRef")
+                };
+                
+                // Format GPS coordinates
+                if (exifData.gpsLat && exifData.gpsLon) {
+                    const lat = this.convertDMSToDD(exifData.gpsLat, exifData.gpsLatRef);
+                    const lon = this.convertDMSToDD(exifData.gpsLon, exifData.gpsLonRef);
+                    exifData.location = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                } else {
+                    exifData.location = "-";
+                }
+
+                resolve(exifData);
+            });
+        });
+    }
+
+    convertDMSToDD(dms, ref) {
+        let dd = dms[0] + dms[1]/60 + dms[2]/3600;
+        if (ref === "S" || ref === "W") dd = dd * -1;
+        return dd;
+    }
+
+    updateImageInfo(file, img, exifData) {
+        const fileSize = (file.size / 1024 / 1024).toFixed(2) + " MB";
+        
+        $('#fileSize').text(fileSize);
+        $('#dimensions').text(`${img.width} × ${img.height} pixels`);
+        $('#camera').text(exifData.camera.trim() || "-");
+        $('#lens').text(exifData.lens);
+        $('#iso').text(exifData.iso);
+        $('#aperture').text(exifData.aperture);
+        $('#shutter').text(exifData.shutter);
+        $('#focalLength').text(exifData.focalLength);
+        $('#dateTaken').text(exifData.dateTaken);
+        $('#location').text(exifData.location);
+        
+        $('#image-info-section').show();
+    }
+
+    async handleFileLoad(event) {
         const file = event.target.files[0];
         if (!file) return;
+
+        // Extract EXIF data
+        const exifData = await this.extractExifData(file);
 
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -95,8 +213,10 @@ class PhotoEditor {
             img.onload = () => {
                 this.originalImage = img;
                 this.currentImage = img;
+                this.fileInfo = { file, exifData };
                 this.displayImage();
                 this.updateHistogram();
+                this.updateImageInfo(file, img, exifData);
                 $('#imageInfo').text(`${img.width} × ${img.height} pixels`);
                 $('.status-bar').text('Image loaded successfully');
             };
@@ -127,8 +247,10 @@ class PhotoEditor {
         this.canvas.width = displayWidth;
         this.canvas.height = displayHeight;
 
-        this.ctx.clearRect(0, 0, displayWidth, displayHeight);
-        this.ctx.drawImage(this.currentImage, 0, 0, displayWidth, displayHeight);
+        // Clear with solid background for rotation
+        this.ctx.fillStyle = '#1a1a1a';
+        this.ctx.fillRect(0, 0, displayWidth, displayHeight);
+
         this.applyAllEffects();
     }
 
@@ -141,8 +263,18 @@ class PhotoEditor {
         tempCanvas.width = this.canvas.width;
         tempCanvas.height = this.canvas.height;
 
-        // Draw original image
-        tempCtx.drawImage(this.originalImage, 0, 0, tempCanvas.width, tempCanvas.height);
+        // Apply rotation if needed
+        if (this.settings.straighten !== 0) {
+            tempCtx.save();
+            tempCtx.fillStyle = '#1a1a1a';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+            tempCtx.rotate((this.settings.straighten * Math.PI) / 180);
+            tempCtx.drawImage(this.originalImage, -tempCanvas.width / 2, -tempCanvas.height / 2, tempCanvas.width, tempCanvas.height);
+            tempCtx.restore();
+        } else {
+            tempCtx.drawImage(this.originalImage, 0, 0, tempCanvas.width, tempCanvas.height);
+        }
 
         // Get image data
         let imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
@@ -151,24 +283,105 @@ class PhotoEditor {
         // Apply effects in order
         this.applyExposureAndContrast(data);
         this.applyColorAdjustments(data);
+        this.applyColorMix(data);
+        this.applyColorGrading(data);
         this.applyToneCurve(data);
-        this.applyEffects(data);
+        this.applyEffects(data, tempCanvas.width, tempCanvas.height);
 
         // Put processed data back
         tempCtx.putImageData(imageData, 0, 0);
 
-        // Apply rotation if needed
-        if (this.settings.straighten !== 0) {
-            this.ctx.save();
-            this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
-            this.ctx.rotate((this.settings.straighten * Math.PI) / 180);
-            this.ctx.drawImage(tempCanvas, -tempCanvas.width / 2, -tempCanvas.height / 2);
-            this.ctx.restore();
-        } else {
-            this.ctx.drawImage(tempCanvas, 0, 0);
-        }
+        // Clear canvas with background color then draw processed image
+        this.ctx.fillStyle = '#1a1a1a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.drawImage(tempCanvas, 0, 0);
 
         this.updateHistogram();
+    }
+
+    applyColorMix(data) {
+        for (let i = 0; i < data.length; i += 4) {
+            let r = data[i] / 255;
+            let g = data[i + 1] / 255;
+            let b = data[i + 2] / 255;
+
+            // Convert to HSL
+            let hsl = this.rgbToHsl(r, g, b);
+            let hue = hsl[0] * 360;
+
+            // Determine dominant color
+            let colorRange = this.getColorRange(hue);
+            if (colorRange && this.settings.colorMix[colorRange]) {
+                const mix = this.settings.colorMix[colorRange];
+                
+                // Apply color mix adjustments
+                hsl[0] = (hsl[0] + mix.hue / 360) % 1;
+                hsl[1] = Math.max(0, Math.min(1, hsl[1] * (1 + mix.saturation / 100)));
+                hsl[2] = Math.max(0, Math.min(1, hsl[2] * (1 + mix.luminance / 100)));
+            }
+
+            // Convert back to RGB
+            const rgb = this.hslToRgb(hsl[0], hsl[1], hsl[2]);
+            data[i] = Math.max(0, Math.min(255, rgb[0] * 255));
+            data[i + 1] = Math.max(0, Math.min(255, rgb[1] * 255));
+            data[i + 2] = Math.max(0, Math.min(255, rgb[2] * 255));
+        }
+    }
+
+    getColorRange(hue) {
+        if (hue >= 0 && hue < 30 || hue >= 330) return 'red';
+        if (hue >= 30 && hue < 60) return 'orange';
+        if (hue >= 60 && hue < 90) return 'yellow';
+        if (hue >= 90 && hue < 150) return 'green';
+        if (hue >= 150 && hue < 210) return 'aqua';
+        if (hue >= 210 && hue < 270) return 'blue';
+        if (hue >= 270 && hue < 300) return 'purple';
+        if (hue >= 300 && hue < 330) return 'magenta';
+        return null;
+    }
+
+    applyColorGrading(data, width, height) {
+        const blending = this.settings.gradingBlending / 100;
+        const balance = this.settings.gradingBalance / 100;
+
+        for (let i = 0; i < data.length; i += 4) {
+            let r = data[i] / 255;
+            let g = data[i + 1] / 255;
+            let b = data[i + 2] / 255;
+
+            const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+            
+            // Determine tone range
+            let grading;
+            if (luminance < 0.33) {
+                grading = this.settings.colorGrading.shadows;
+            } else if (luminance < 0.67) {
+                grading = this.settings.colorGrading.midtones;
+            } else {
+                grading = this.settings.colorGrading.highlights;
+            }
+
+            // Apply global grading
+            const globalGrading = this.settings.colorGrading.global;
+            
+            // Convert to HSL
+            let hsl = this.rgbToHsl(r, g, b);
+            
+            // Apply grading adjustments
+            hsl[0] = (hsl[0] + (grading.hue + globalGrading.hue) / 360) % 1;
+            hsl[1] = Math.max(0, Math.min(1, hsl[1] * (1 + (grading.saturation + globalGrading.saturation) / 100)));
+            hsl[2] = Math.max(0, Math.min(1, hsl[2] * (1 + (grading.luminance + globalGrading.luminance) / 100)));
+            
+            // Apply blending and balance
+            hsl[1] *= blending;
+            hsl[0] = (hsl[0] + balance / 360) % 1;
+
+            // Convert back to RGB
+            const rgb = this.hslToRgb(hsl[0], hsl[1], hsl[2]);
+            data[i] = Math.max(0, Math.min(255, rgb[0] * 255));
+            data[i + 1] = Math.max(0, Math.min(255, rgb[1] * 255));
+            data[i + 2] = Math.max(0, Math.min(255, rgb[2] * 255));
+        }
     }
 
     applyExposureAndContrast(data) {
@@ -286,15 +499,19 @@ class PhotoEditor {
         }
     }
 
-    applyEffects(data) {
+    applyEffects(data, width, height) {
         const texture = this.settings.texture / 100;
         const clarity = this.settings.clarity / 100;
         const dehaze = this.settings.dehaze / 100;
         const vignetteAmount = this.settings.vignetteAmount / 100;
+        const vignetteMidpoint = this.settings.vignetteMidpoint / 100;
+        const vignetteFeather = this.settings.vignetteFeather / 100;
+        const vignetteRoundness = this.settings.vignetteRoundness / 100;
+        const vignetteHighlights = this.settings.vignetteHighlights / 100;
         const grainAmount = this.settings.grainAmount / 100;
+        const grainSize = this.settings.grainSize / 100;
+        const grainRoughness = this.settings.grainRoughness / 100;
 
-        const width = this.canvas.width;
-        const height = this.canvas.height;
         const centerX = width / 2;
         const centerY = height / 2;
         const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
@@ -317,6 +534,14 @@ class PhotoEditor {
                 b = b + (b - luminance) * contrast;
             }
 
+            // Apply texture
+            if (texture !== 0) {
+                const textureNoise = (Math.random() - 0.5) * texture * 0.1;
+                r += textureNoise;
+                g += textureNoise;
+                b += textureNoise;
+            }
+
             // Apply dehaze
             if (dehaze !== 0) {
                 const factor = 1 + dehaze * 0.3;
@@ -325,22 +550,46 @@ class PhotoEditor {
                 b = ((b - 0.5) * factor) + 0.5;
             }
 
-            // Apply vignette
+            // Apply vignette with improved algorithm
             if (vignetteAmount !== 0) {
-                const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-                const normalizedDistance = distance / maxDistance;
-                const vignetteStrength = 1 - vignetteAmount * Math.pow(normalizedDistance, 2);
+                const dx = (x - centerX) / centerX;
+                const dy = (y - centerY) / centerY;
+                
+                // Apply roundness
+                const ellipticalDistance = Math.sqrt(dx * dx * (1 + vignetteRoundness) + dy * dy * (1 - vignetteRoundness));
+                
+                // Calculate vignette strength
+                const vignetteRadius = vignetteMidpoint;
+                const falloff = Math.max(0, (ellipticalDistance - vignetteRadius) / (1 - vignetteRadius));
+                const smoothFalloff = Math.pow(falloff, 1 / vignetteFeather);
+                
+                let vignetteStrength = 1 - vignetteAmount * smoothFalloff;
+                
+                // Apply highlight protection
+                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                if (vignetteHighlights > 0 && luminance > 0.8) {
+                    vignetteStrength = 1 - vignetteAmount * smoothFalloff * (1 - vignetteHighlights * (luminance - 0.8) / 0.2);
+                }
+                
                 r *= vignetteStrength;
                 g *= vignetteStrength;
                 b *= vignetteStrength;
             }
 
-            // Apply grain
+            // Apply grain with improved algorithm
             if (grainAmount > 0) {
-                const noise = (Math.random() - 0.5) * grainAmount * 0.1;
-                r += noise;
-                g += noise;
-                b += noise;
+                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                const grainIntensity = grainAmount * (1 - Math.abs(luminance - 0.5) * 0.5);
+                
+                // Generate grain based on position for consistency
+                const grainSeed = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+                const grain = (grainSeed - Math.floor(grainSeed) - 0.5) * grainIntensity * grainSize;
+                const roughnessVar = Math.sin(x * grainRoughness + y * grainRoughness) * grainIntensity * 0.1;
+                
+                const finalGrain = grain + roughnessVar;
+                r += finalGrain;
+                g += finalGrain;
+                b += finalGrain;
             }
 
             // Clamp values
@@ -369,7 +618,9 @@ class PhotoEditor {
         this.updateSetting(id, value);
 
         // Apply changes
-        this.displayImage();
+        if (this.originalImage) {
+            this.displayImage();
+        }
     }
 
     updateSetting(id, value) {
@@ -390,13 +641,24 @@ class PhotoEditor {
             'vignette-amount': 'vignetteAmount',
             'vignette-midpoint': 'vignetteMidpoint',
             'vignette-feather': 'vignetteFeather',
+            'vignette-roundness': 'vignetteRoundness',
+            'vignette-highlights': 'vignetteHighlights',
             'grain-amount': 'grainAmount',
             'grain-size': 'grainSize',
+            'grain-roughness': 'grainRoughness',
             'sharpen-amount': 'sharpenAmount',
             'sharpen-radius': 'sharpenRadius',
+            'sharpen-detail': 'sharpenDetail',
+            'sharpen-masking': 'sharpenMasking',
             'noise-luminance': 'noiseLuminance',
+            'noise-detail': 'noiseDetail',
+            'noise-contrast': 'noiseContrast',
             'noise-color': 'noiseColor',
-            'straighten': 'straighten'
+            'color-noise-detail': 'colorNoiseDetail',
+            'color-noise-smoothness': 'colorNoiseSmoothness',
+            'straighten': 'straighten',
+            'grading-blending': 'gradingBlending',
+            'grading-balance': 'gradingBalance'
         };
 
         if (settingMap[id]) {
@@ -410,6 +672,112 @@ class PhotoEditor {
             const type = slider.data('type');
             this.settings.colorMix[color][type] = value;
         }
+
+        // Handle color grading sliders
+        if (slider.data('grading') && slider.data('type')) {
+            const grading = slider.data('grading');
+            const type = slider.data('type');
+            this.settings.colorGrading[grading][type] = value;
+        }
+    }
+
+    setAspectRatio(aspect) {
+        $('.aspect-btn').removeClass('active');
+        $(`.aspect-btn[data-aspect="${aspect}"]`).addClass('active');
+        this.currentAspectRatio = aspect;
+        
+        if (aspect !== 'free' && this.originalImage) {
+            this.initializeCrop();
+        }
+    }
+
+    initializeCrop() {
+        if (!this.originalImage) return;
+        
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const containerRect = $('.canvas-container')[0].getBoundingClientRect();
+        
+        let cropWidth, cropHeight;
+        const aspectRatios = {
+            '1:1': 1,
+            '4:3': 4/3,
+            '16:9': 16/9,
+            '3:2': 3/2,
+            '5:4': 5/4
+        };
+        
+        const targetRatio = aspectRatios[this.currentAspectRatio];
+        const canvasRatio = this.canvas.width / this.canvas.height;
+        
+        if (targetRatio > canvasRatio) {
+            // Crop is wider than canvas
+            cropWidth = this.canvas.width * 0.8;
+            cropHeight = cropWidth / targetRatio;
+        } else {
+            // Crop is taller than canvas
+            cropHeight = this.canvas.height * 0.8;
+            cropWidth = cropHeight * targetRatio;
+        }
+        
+        this.cropData = {
+            x: (this.canvas.width - cropWidth) / 2,
+            y: (this.canvas.height - cropHeight) / 2,
+            width: cropWidth,
+            height: cropHeight
+        };
+        
+        this.showCropOverlay();
+    }
+
+    showCropOverlay() {
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const containerRect = $('.canvas-container')[0].getBoundingClientRect();
+        
+        const scaleX = canvasRect.width / this.canvas.width;
+        const scaleY = canvasRect.height / this.canvas.height;
+        
+        const overlay = $('#cropOverlay');
+        overlay.css({
+            left: canvasRect.left - containerRect.left + this.cropData.x * scaleX,
+            top: canvasRect.top - containerRect.top + this.cropData.y * scaleY,
+            width: this.cropData.width * scaleX,
+            height: this.cropData.height * scaleY,
+            display: 'block'
+        });
+    }
+
+    applyCrop() {
+        if (!this.originalImage || !this.cropData) return;
+        
+        // Create new canvas with cropped image
+        const cropCanvas = document.createElement('canvas');
+        const cropCtx = cropCanvas.getContext('2d');
+        
+        // Calculate crop coordinates relative to original image
+        const scaleX = this.originalImage.width / this.canvas.width;
+        const scaleY = this.originalImage.height / this.canvas.height;
+        
+        const cropX = this.cropData.x * scaleX;
+        const cropY = this.cropData.y * scaleY;
+        const cropWidth = this.cropData.width * scaleX;
+        const cropHeight = this.cropData.height * scaleY;
+        
+        cropCanvas.width = cropWidth;
+        cropCanvas.height = cropHeight;
+        
+        cropCtx.drawImage(this.originalImage, 
+            cropX, cropY, cropWidth, cropHeight,
+            0, 0, cropWidth, cropHeight);
+        
+        // Update original image
+        const newImg = new Image();
+        newImg.onload = () => {
+            this.originalImage = newImg;
+            this.currentImage = newImg;
+            $('#cropOverlay').hide();
+            this.displayImage();
+        };
+        newImg.src = cropCanvas.toDataURL();
     }
 
     applyPreset(preset) {
@@ -470,17 +838,25 @@ class PhotoEditor {
         });
 
         this.updateAllSliders();
-        this.displayImage();
+        if (this.originalImage) {
+            this.displayImage();
+        }
     }
 
     updateAllSliders() {
         Object.keys(this.settings).forEach(key => {
+            if (key === 'colorMix' || key === 'colorGrading') return;
+            
             const slider = this.getSliderBySettingKey(key);
             if (slider) {
                 slider.val(this.settings[key]);
                 const valueDisplay = $(`#${slider.attr('id')}-value`);
                 if (valueDisplay.length) {
-                    valueDisplay.text(this.settings[key]);
+                    if (slider.attr('id') === 'straighten') {
+                        valueDisplay.text(this.settings[key] + '°');
+                    } else {
+                        valueDisplay.text(this.settings[key]);
+                    }
                 }
             }
         });
@@ -520,13 +896,24 @@ class PhotoEditor {
             'vignetteAmount': '#vignette-amount',
             'vignetteMidpoint': '#vignette-midpoint',
             'vignetteFeather': '#vignette-feather',
+            'vignetteRoundness': '#vignette-roundness',
+            'vignetteHighlights': '#vignette-highlights',
             'grainAmount': '#grain-amount',
             'grainSize': '#grain-size',
+            'grainRoughness': '#grain-roughness',
             'sharpenAmount': '#sharpen-amount',
             'sharpenRadius': '#sharpen-radius',
+            'sharpenDetail': '#sharpen-detail',
+            'sharpenMasking': '#sharpen-masking',
             'noiseLuminance': '#noise-luminance',
+            'noiseDetail': '#noise-detail',
+            'noiseContrast': '#noise-contrast',
             'noiseColor': '#noise-color',
-            'straighten': '#straighten'
+            'colorNoiseDetail': '#color-noise-detail',
+            'colorNoiseSmoothness': '#color-noise-smoothness',
+            'straighten': '#straighten',
+            'gradingBlending': '#grading-blending',
+            'gradingBalance': '#grading-balance'
         };
 
         return keyMap[settingKey] ? $(keyMap[settingKey]) : null;
@@ -555,6 +942,7 @@ class PhotoEditor {
         this.toneCurvePoints = [[0, 0], [255, 255]];
         this.updateAllSliders();
         this.drawToneCurve();
+        $('#cropOverlay').hide();
         if (this.originalImage) {
             this.displayImage();
         }
@@ -782,10 +1170,36 @@ class PhotoEditor {
         this.toneCurveEditMode = false;
     }
 
-    setAspectRatio(aspect) {
-        $('.aspect-btn').removeClass('active');
-        $(`.aspect-btn[data-aspect="${aspect}"]`).addClass('active');
-        // Aspect ratio logic would be implemented here
-        console.log('Aspect ratio set to:', aspect);
+    // Crop drag methods
+    startCropDrag(e) {
+        if (!this.cropData || $('#cropOverlay').css('display') === 'none') return;
+        
+        this.cropDragging = true;
+        this.cropDragStart = { x: e.clientX, y: e.clientY };
+        e.preventDefault();
+    }
+
+    updateCropDrag(e) {
+        if (!this.cropDragging) return;
+
+        const dx = e.clientX - this.cropDragStart.x;
+        const dy = e.clientY - this.cropDragStart.y;
+
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const containerRect = $('.canvas-container')[0].getBoundingClientRect();
+        const scaleX = this.canvas.width / canvasRect.width;
+        const scaleY = this.canvas.height / canvasRect.height;
+
+        this.cropData.x = Math.max(0, Math.min(this.canvas.width - this.cropData.width, 
+            this.cropData.x + dx * scaleX));
+        this.cropData.y = Math.max(0, Math.min(this.canvas.height - this.cropData.height, 
+            this.cropData.y + dy * scaleY));
+
+        this.showCropOverlay();
+        this.cropDragStart = { x: e.clientX, y: e.clientY };
+    }
+
+    endCropDrag() {
+        this.cropDragging = false;
     }
 }
