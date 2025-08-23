@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Marulam - Photo Editor</title>
-    <script type="text/javascript" src="asets/jquery.min.js"></script>
-    <script type="text/javascript" src="asets/photoeditor.js"></script>
+    <script type="text/javascript" src="asets/scripts/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="asets/style.css">
     <link rel="icon" type="image/x-icon" href="asets/favicon.png">
 </head>
@@ -24,6 +23,53 @@
                     <button class="preset-btn" data-preset="vintage">Vintage</button>
                     <button class="preset-btn" data-preset="dramatic">Dramatic</button>
                     <button class="preset-btn" data-preset="soft">Soft</button>
+                </div>
+            </div>
+
+            <!-- Image Info Section -->
+            <div class="section" id="image-info-section" style="display: none;">
+                <div class="section-title">Image Info</div>
+                <div class="image-info-section">
+                    <div class="image-info-item">
+                        <span class="image-info-label">File Size:</span>
+                        <span class="image-info-value" id="fileSize">-</span>
+                    </div>
+                    <div class="image-info-item">
+                        <span class="image-info-label">Dimensions:</span>
+                        <span class="image-info-value" id="dimensions">-</span>
+                    </div>
+                    <div class="image-info-item">
+                        <span class="image-info-label">Camera:</span>
+                        <span class="image-info-value" id="camera">-</span>
+                    </div>
+                    <div class="image-info-item">
+                        <span class="image-info-label">Lens:</span>
+                        <span class="image-info-value" id="lens">-</span>
+                    </div>
+                    <div class="image-info-item">
+                        <span class="image-info-label">ISO:</span>
+                        <span class="image-info-value" id="iso">-</span>
+                    </div>
+                    <div class="image-info-item">
+                        <span class="image-info-label">Aperture:</span>
+                        <span class="image-info-value" id="aperture">-</span>
+                    </div>
+                    <div class="image-info-item">
+                        <span class="image-info-label">Shutter:</span>
+                        <span class="image-info-value" id="shutter">-</span>
+                    </div>
+                    <div class="image-info-item">
+                        <span class="image-info-label">Focal Length:</span>
+                        <span class="image-info-value" id="focalLength">-</span>
+                    </div>
+                    <div class="image-info-item">
+                        <span class="image-info-label">Date Taken:</span>
+                        <span class="image-info-value" id="dateTaken">-</span>
+                    </div>
+                    <div class="image-info-item">
+                        <span class="image-info-label">Location:</span>
+                        <span class="image-info-value" id="location">-</span>
+                    </div>
                 </div>
             </div>
 
@@ -51,11 +97,15 @@
                         <button class="aspect-btn" data-aspect="3:2">3:2</button>
                         <button class="aspect-btn" data-aspect="5:4">5:4</button>
                     </div>
+                    <button class="btn" id="applyCropBtn" style="width: 100%; margin-top: 10px;">Apply Crop</button>
                 </div>
 
                 <div class="control-group">
                     <label class="control-label">Straighten</label>
-                    <input type="range" class="slider" id="straighten" min="-45" max="45" value="0" step="0.1">
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="straighten" min="-45" max="45" value="0" step="0.1">
+                        <span class="slider-reset" title="Double-click to reset">↺</span>
+                    </div>
                     <div class="value-display" id="straighten-value">0°</div>
                 </div>
             </div>
@@ -73,37 +123,55 @@
                 <div id="light-content" class="tab-content active">
                     <div class="control-group">
                         <label class="control-label">Exposure</label>
-                        <input type="range" class="slider" id="exposure" min="-2" max="2" value="0" step="0.01">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="exposure" min="-2" max="2" value="0" step="0.01">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="exposure-value">0</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Contrast</label>
-                        <input type="range" class="slider" id="contrast" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="contrast" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="contrast-value">0</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Highlights</label>
-                        <input type="range" class="slider" id="highlights" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="highlights" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="highlights-value">0</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Shadows</label>
-                        <input type="range" class="slider" id="shadows" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="shadows" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="shadows-value">0</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Whites</label>
-                        <input type="range" class="slider" id="whites" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="whites" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="whites-value">0</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Blacks</label>
-                        <input type="range" class="slider" id="blacks" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="blacks" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="blacks-value">0</div>
                     </div>
 
@@ -116,76 +184,162 @@
                     <div class="section-title">White Balance</div>
                     <div class="control-group">
                         <label class="control-label">Temperature</label>
-                        <input type="range" class="slider" id="temperature" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="temperature" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="temperature-value">0</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Tint</label>
-                        <input type="range" class="slider" id="tint" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="tint" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="tint-value">0</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Vibrance</label>
-                        <input type="range" class="slider" id="vibrance" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="vibrance" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="vibrance-value">0</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Saturation</label>
-                        <input type="range" class="slider" id="saturation" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="saturation" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="saturation-value">0</div>
+                    </div>
+
+                    <div class="section-title">Color Grading</div>
+                    <div class="color-grading-grid">
+                        <div class="color-grading-item">
+                            <div class="color-grading-title" style="color: #888;">Shadows</div>
+                            <div style="font-size: 10px; margin-bottom: 3px;">H</div>
+                            <input type="range" class="slider" id="shadows-hue" min="-100" max="100" value="0" data-grading="shadows" data-type="hue">
+                            <div style="font-size: 10px; margin-bottom: 3px;">S</div>
+                            <input type="range" class="slider" id="shadows-saturation" min="-100" max="100" value="0" data-grading="shadows" data-type="saturation">
+                            <div style="font-size: 10px; margin-bottom: 3px;">L</div>
+                            <input type="range" class="slider" id="shadows-luminance" min="-100" max="100" value="0" data-grading="shadows" data-type="luminance">
+                        </div>
+                        <div class="color-grading-item">
+                            <div class="color-grading-title" style="color: #bbb;">Midtones</div>
+                            <div style="font-size: 10px; margin-bottom: 3px;">H</div>
+                            <input type="range" class="slider" id="midtones-hue" min="-100" max="100" value="0" data-grading="midtones" data-type="hue">
+                            <div style="font-size: 10px; margin-bottom: 3px;">S</div>
+                            <input type="range" class="slider" id="midtones-saturation" min="-100" max="100" value="0" data-grading="midtones" data-type="saturation">
+                            <div style="font-size: 10px; margin-bottom: 3px;">L</div>
+                            <input type="range" class="slider" id="midtones-luminance" min="-100" max="100" value="0" data-grading="midtones" data-type="luminance">
+                        </div>
+                        <div class="color-grading-item">
+                            <div class="color-grading-title" style="color: #fff;">Highlights</div>
+                            <div style="font-size: 10px; margin-bottom: 3px;">H</div>
+                            <input type="range" class="slider" id="highlights-hue" min="-100" max="100" value="0" data-grading="highlights" data-type="hue">
+                            <div style="font-size: 10px; margin-bottom: 3px;">S</div>
+                            <input type="range" class="slider" id="highlights-saturation" min="-100" max="100" value="0" data-grading="highlights" data-type="saturation">
+                            <div style="font-size: 10px; margin-bottom: 3px;">L</div>
+                            <input type="range" class="slider" id="highlights-luminance" min="-100" max="100" value="0" data-grading="highlights" data-type="luminance">
+                        </div>
+                        <div class="color-grading-item">
+                            <div class="color-grading-title" style="color: #007acc;">Global</div>
+                            <div style="font-size: 10px; margin-bottom: 3px;">H</div>
+                            <input type="range" class="slider" id="global-hue" min="-100" max="100" value="0" data-grading="global" data-type="hue">
+                            <div style="font-size: 10px; margin-bottom: 3px;">S</div>
+                            <input type="range" class="slider" id="global-saturation" min="-100" max="100" value="0" data-grading="global" data-type="saturation">
+                            <div style="font-size: 10px; margin-bottom: 3px;">L</div>
+                            <input type="range" class="slider" id="global-luminance" min="-100" max="100" value="0" data-grading="global" data-type="luminance">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Blending</label>
+                        <input type="range" class="slider" id="grading-blending" min="0" max="100" value="50">
+                        <div class="value-display" id="grading-blending-value">50</div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Balance</label>
+                        <input type="range" class="slider" id="grading-balance" min="-100" max="100" value="0">
+                        <div class="value-display" id="grading-balance-value">0</div>
                     </div>
 
                     <div class="section-title">Color Mix</div>
                     <div class="color-mix-grid">
                         <div class="color-mix-item">
                             <div style="font-weight: bold; color: #ff4444;">Red</div>
+                            <div style="font-size: 10px;">H</div>
                             <input type="range" class="slider" id="red-hue" min="-100" max="100" value="0" data-color="red" data-type="hue">
+                            <div style="font-size: 10px;">S</div>
                             <input type="range" class="slider" id="red-sat" min="-100" max="100" value="0" data-color="red" data-type="saturation">
+                            <div style="font-size: 10px;">L</div>
                             <input type="range" class="slider" id="red-lum" min="-100" max="100" value="0" data-color="red" data-type="luminance">
                         </div>
                         <div class="color-mix-item">
                             <div style="font-weight: bold; color: #ff8844;">Orange</div>
+                            <div style="font-size: 10px;">H</div>
                             <input type="range" class="slider" id="orange-hue" min="-100" max="100" value="0" data-color="orange" data-type="hue">
+                            <div style="font-size: 10px;">S</div>
                             <input type="range" class="slider" id="orange-sat" min="-100" max="100" value="0" data-color="orange" data-type="saturation">
+                            <div style="font-size: 10px;">L</div>
                             <input type="range" class="slider" id="orange-lum" min="-100" max="100" value="0" data-color="orange" data-type="luminance">
                         </div>
                         <div class="color-mix-item">
                             <div style="font-weight: bold; color: #ffff44;">Yellow</div>
+                            <div style="font-size: 10px;">H</div>
                             <input type="range" class="slider" id="yellow-hue" min="-100" max="100" value="0" data-color="yellow" data-type="hue">
+                            <div style="font-size: 10px;">S</div>
                             <input type="range" class="slider" id="yellow-sat" min="-100" max="100" value="0" data-color="yellow" data-type="saturation">
+                            <div style="font-size: 10px;">L</div>
                             <input type="range" class="slider" id="yellow-lum" min="-100" max="100" value="0" data-color="yellow" data-type="luminance">
                         </div>
                         <div class="color-mix-item">
                             <div style="font-weight: bold; color: #44ff44;">Green</div>
+                            <div style="font-size: 10px;">H</div>
                             <input type="range" class="slider" id="green-hue" min="-100" max="100" value="0" data-color="green" data-type="hue">
+                            <div style="font-size: 10px;">S</div>
                             <input type="range" class="slider" id="green-sat" min="-100" max="100" value="0" data-color="green" data-type="saturation">
+                            <div style="font-size: 10px;">L</div>
                             <input type="range" class="slider" id="green-lum" min="-100" max="100" value="0" data-color="green" data-type="luminance">
                         </div>
                         <div class="color-mix-item">
                             <div style="font-weight: bold; color: #44ffff;">Aqua</div>
+                            <div style="font-size: 10px;">H</div>
                             <input type="range" class="slider" id="aqua-hue" min="-100" max="100" value="0" data-color="aqua" data-type="hue">
+                            <div style="font-size: 10px;">S</div>
                             <input type="range" class="slider" id="aqua-sat" min="-100" max="100" value="0" data-color="aqua" data-type="saturation">
+                            <div style="font-size: 10px;">L</div>
                             <input type="range" class="slider" id="aqua-lum" min="-100" max="100" value="0" data-color="aqua" data-type="luminance">
                         </div>
                         <div class="color-mix-item">
                             <div style="font-weight: bold; color: #4444ff;">Blue</div>
+                            <div style="font-size: 10px;">H</div>
                             <input type="range" class="slider" id="blue-hue" min="-100" max="100" value="0" data-color="blue" data-type="hue">
+                            <div style="font-size: 10px;">S</div>
                             <input type="range" class="slider" id="blue-sat" min="-100" max="100" value="0" data-color="blue" data-type="saturation">
+                            <div style="font-size: 10px;">L</div>
                             <input type="range" class="slider" id="blue-lum" min="-100" max="100" value="0" data-color="blue" data-type="luminance">
                         </div>
                         <div class="color-mix-item">
                             <div style="font-weight: bold; color: #ff44ff;">Purple</div>
+                            <div style="font-size: 10px;">H</div>
                             <input type="range" class="slider" id="purple-hue" min="-100" max="100" value="0" data-color="purple" data-type="hue">
+                            <div style="font-size: 10px;">S</div>
                             <input type="range" class="slider" id="purple-sat" min="-100" max="100" value="0" data-color="purple" data-type="saturation">
+                            <div style="font-size: 10px;">L</div>
                             <input type="range" class="slider" id="purple-lum" min="-100" max="100" value="0" data-color="purple" data-type="luminance">
                         </div>
                         <div class="color-mix-item">
                             <div style="font-weight: bold; color: #ff4488;">Magenta</div>
+                            <div style="font-size: 10px;">H</div>
                             <input type="range" class="slider" id="magenta-hue" min="-100" max="100" value="0" data-color="magenta" data-type="hue">
+                            <div style="font-size: 10px;">S</div>
                             <input type="range" class="slider" id="magenta-sat" min="-100" max="100" value="0" data-color="magenta" data-type="saturation">
+                            <div style="font-size: 10px;">L</div>
                             <input type="range" class="slider" id="magenta-lum" min="-100" max="100" value="0" data-color="magenta" data-type="luminance">
                         </div>
                     </div>
@@ -196,52 +350,103 @@
                     <div class="section-title">Effects</div>
                     <div class="control-group">
                         <label class="control-label">Texture</label>
-                        <input type="range" class="slider" id="texture" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="texture" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="texture-value">0</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Clarity</label>
-                        <input type="range" class="slider" id="clarity" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="clarity" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="clarity-value">0</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Dehaze</label>
-                        <input type="range" class="slider" id="dehaze" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="dehaze" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="dehaze-value">0</div>
                     </div>
 
                     <div class="section-title">Vignette</div>
                     <div class="control-group">
                         <label class="control-label">Amount</label>
-                        <input type="range" class="slider" id="vignette-amount" min="-100" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="vignette-amount" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="vignette-amount-value">0</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Midpoint</label>
-                        <input type="range" class="slider" id="vignette-midpoint" min="0" max="100" value="50">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="vignette-midpoint" min="0" max="100" value="50">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="vignette-midpoint-value">50</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Feather</label>
-                        <input type="range" class="slider" id="vignette-feather" min="0" max="100" value="50">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="vignette-feather" min="0" max="100" value="50">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="vignette-feather-value">50</div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Roundness</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="vignette-roundness" min="-100" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
+                        <div class="value-display" id="vignette-roundness-value">0</div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Highlights</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="vignette-highlights" min="0" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
+                        <div class="value-display" id="vignette-highlights-value">0</div>
                     </div>
 
                     <div class="section-title">Grain</div>
                     <div class="control-group">
                         <label class="control-label">Amount</label>
-                        <input type="range" class="slider" id="grain-amount" min="0" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="grain-amount" min="0" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="grain-amount-value">0</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Size</label>
-                        <input type="range" class="slider" id="grain-size" min="0" max="100" value="25">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="grain-size" min="0" max="100" value="25">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="grain-size-value">25</div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Roughness</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="grain-roughness" min="0" max="100" value="50">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
+                        <div class="value-display" id="grain-roughness-value">50</div>
                     </div>
                 </div>
 
@@ -250,27 +455,94 @@
                     <div class="section-title">Sharpening</div>
                     <div class="control-group">
                         <label class="control-label">Amount</label>
-                        <input type="range" class="slider" id="sharpen-amount" min="0" max="150" value="25">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="sharpen-amount" min="0" max="150" value="25">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="sharpen-amount-value">25</div>
                     </div>
 
                     <div class="control-group">
                         <label class="control-label">Radius</label>
-                        <input type="range" class="slider" id="sharpen-radius" min="0.5" max="3" value="1" step="0.1">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="sharpen-radius" min="0.5" max="3" value="1" step="0.1">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="sharpen-radius-value">1</div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Detail</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="sharpen-detail" min="0" max="100" value="25">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
+                        <div class="value-display" id="sharpen-detail-value">25</div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Masking</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="sharpen-masking" min="0" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
+                        <div class="value-display" id="sharpen-masking-value">0</div>
                     </div>
 
                     <div class="section-title">Noise Reduction</div>
                     <div class="control-group">
                         <label class="control-label">Luminance</label>
-                        <input type="range" class="slider" id="noise-luminance" min="0" max="100" value="0">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="noise-luminance" min="0" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="noise-luminance-value">0</div>
                     </div>
 
                     <div class="control-group">
+                        <label class="control-label">Detail</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="noise-detail" min="0" max="100" value="50">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
+                        <div class="value-display" id="noise-detail-value">50</div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Contrast</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="noise-contrast" min="0" max="100" value="0">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
+                        <div class="value-display" id="noise-contrast-value">0</div>
+                    </div>
+
+                    <div class="section-title">Color Noise Reduction</div>
+                    <div class="control-group">
                         <label class="control-label">Color</label>
-                        <input type="range" class="slider" id="noise-color" min="0" max="100" value="25">
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="noise-color" min="0" max="100" value="25">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
                         <div class="value-display" id="noise-color-value">25</div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Detail</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="color-noise-detail" min="0" max="100" value="50">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
+                        <div class="value-display" id="color-noise-detail-value">50</div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Smoothness</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="color-noise-smoothness" min="0" max="100" value="50">
+                            <span class="slider-reset" title="Double-click to reset">↺</span>
+                        </div>
+                        <div class="value-display" id="color-noise-smoothness-value">50</div>
                     </div>
                 </div>
             </div>
@@ -280,7 +552,7 @@
             <div class="toolbar">
                 <input type="file" id="fileInput" class="file-input" accept="image/*">
                 <button class="btn" onclick="$('#fileInput').click()">Import Image</button>
-                <button class="btn btn-secondary" id="resetBtn">Reset All</button>
+                <button class="btn btn-secondary" id="resetBtn">Reset Perubahan</button>
                 <button class="btn" id="saveBtn">Save Image</button>
                 <span style="margin-left: auto; font-size: 12px; color: #999;" id="imageInfo">No image loaded</span>
             </div>
@@ -301,6 +573,8 @@
         </div>
     </div>
 
+    <script type="text/javascript" src="asets/scripts/exif-2.3.0.js"></script>
+    <script type="text/javascript" src="asets/scripts/photoeditor.js"></script>
     <script>
         // Initialize the editor when document is ready
         $(document).ready(() => {
